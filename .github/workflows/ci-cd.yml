@@ -1,0 +1,88 @@
+name: MERN Stack CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install backend dependencies
+      run: npm install
+      working-directory: backend
+      
+    - name: Run backend tests
+      run: npm test
+      working-directory: backend
+      env:
+        NODE_ENV: test
+        MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        PORT: 5000
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install frontend dependencies
+      run: npm install
+      working-directory: frontend
+      
+    - name: Run frontend tests
+      run: npm test -- --coverage --watchAll=false
+      working-directory: frontend
+      
+    - name: Build frontend
+      run: npm run build
+      working-directory: frontend
+
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Render
+      run: |
+        echo "Backend deployment would trigger automatically via Render webhook"
+        echo "Deployment typically happens after successful tests"
+        
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Vercel
+      run: |
+        echo "Frontend deployment would trigger automatically via Vercel"
+        echo "Deployment typically happens after successful tests"
