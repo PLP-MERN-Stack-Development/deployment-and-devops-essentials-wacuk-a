@@ -1,0 +1,15 @@
+{
+  "name": "mern-deployment-app",
+  "version": "1.0.0",
+  "description": "MERN Stack Deployment Assignment",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "build:frontend": "cd frontend && npm run build",
+    "start:backend": "cd backend && npm start",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": ["mern", "deployment", "devops"],
+  "author": "",
+  "license": "ISC"
+}
