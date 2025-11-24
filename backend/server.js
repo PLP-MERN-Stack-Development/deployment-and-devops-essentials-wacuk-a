@@ -3,7 +3,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const connectDB = require('./config/database');
 require('dotenv').config();
+
+// Connect to MongoDB
+connectDB();
 
 const app = express();
 
@@ -12,9 +16,22 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration
+// CORS configuration - allow both local and production frontends
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://deployment-and-devops-essentials-wa-khaki.vercel.app'
+];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 
@@ -23,18 +40,9 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB connection with connection pooling
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mernapp', {
-  maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-})
-.then(() => console.log('✅ MongoDB connected successfully'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
-
 // Basic route
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'MERN Stack API is running!',
     environment: process.env.NODE_ENV,
     timestamp: new Date().toISOString()
@@ -44,9 +52,9 @@ app.get('/', (req, res) => {
 // Health check route with DB status
 app.get('/health', async (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-  
-  res.status(200).json({ 
-    status: 'OK', 
+
+  res.status(200).json({
+    status: 'OK',
     database: dbStatus,
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
@@ -56,7 +64,7 @@ app.get('/health', async (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Something went wrong!',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
