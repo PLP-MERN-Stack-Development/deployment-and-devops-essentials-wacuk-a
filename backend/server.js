@@ -3,35 +3,30 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const connectDB = require('./config/database');
+const path = require('path');
 require('dotenv').config();
 
-// Connect to MongoDB
-connectDB();
+const connectDB = require('./config/database');
+const healthRoutes = require('./routes/health');
+const { initSentry, errorHandler } = require('./config/sentry');
 
 const app = express();
 
-// Security middleware
+// Initialize Sentry
+initSentry(app);
+
+// Security headers
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false
 }));
 
-// CORS configuration - allow both local and production frontends
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://deployment-and-devops-essentials-wa-khaki.vercel.app'
-];
-
+// CORS configuration
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
+  origin: [
+    'http://localhost:3000',
+    'https://deployment-and-devops-essentials-wa-khaki.vercel.app'
+  ],
   credentials: true
 }));
 
@@ -48,28 +43,15 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-const healthRoutes = require('./routes/health');
 
-// Health check route with DB status
-app.get('/health', async (req, res) => {
-  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+// Health check route
+app.use('/health', healthRoutes);
 
-  res.status(200).json({
-    status: 'OK',
-    database: dbStatus,
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
-  });
-});
+// Connect to database
+connectDB();
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
-  res.status(500).json({
-    error: 'Something went wrong!',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
-});
+app.use(errorHandler());
 
 // 404 handler
 app.use((req, res) => {
@@ -81,5 +63,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
-
-module.exports = app;
