@@ -48,6 +48,7 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+const healthRoutes = require('./routes/health');
 
 // Health check route with DB status
 app.get('/health', async (req, res) => {
@@ -71,7 +72,7 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
