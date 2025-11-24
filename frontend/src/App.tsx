@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import './App.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const LazyComponent = lazy(() => import('./LazyComponent'));
 
 function App() {
   const [message, setMessage] = useState('');
   const [health, setHealth] = useState('');
+  const [showLazy, setShowLazy] = useState(false);
 
   useEffect(() => {
     // Fetch main API message
@@ -28,6 +30,18 @@ function App() {
         <p>Frontend: React with TypeScript</p>
         <p>Backend Status: {health}</p>
         <p>Backend Message: {message}</p>
+        
+        <button 
+          onClick={() => setShowLazy(!showLazy)}
+          style={{ margin: '20px', padding: '10px 20px' }}
+        >
+          {showLazy ? 'Hide' : 'Show'} Lazy Component
+        </button>
+
+        <Suspense fallback={<div>Loading...</div>}>
+          {showLazy && <LazyComponent />}
+        </Suspense>
+
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
         </p>
